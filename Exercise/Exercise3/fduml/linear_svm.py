@@ -27,14 +27,19 @@ def svm_loss_naive(W, X, y, reg):
     num_train = X.shape[0]
     loss = 0.0
     for i in range(num_train):
+        # 所有类别的分数
         scores = X[i].dot(W)
+        # 正确类别的分数
         correct_class_score = scores[y[i]]
         for j in range(num_classes):
             if j == y[i]:
                 continue
+            # 正确类别分数 < 错误类别分数+1，则要加进损失函数里，说明分类不好
             margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
                 loss += margin
+                dW[:, j] += X[i]
+                dW[:, y[i]] -= X[i]
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
@@ -53,7 +58,8 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dW /= num_train
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -67,6 +73,8 @@ def svm_loss_vectorized(W, X, y, reg):
     Inputs and outputs are the same as svm_loss_naive.
     """
     loss = 0.0
+    num_classes = W.shape[1]
+    num_train = X.shape[0]
     dW = np.zeros(W.shape)  # initialize the gradient as zero
 
     #############################################################################
@@ -76,7 +84,14 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = X.dot(W)
+    correct_class_scores = scores[np.arange(num_train), y].reshape(-1, 1)
+
+    margins = np.maximum(0, scores - correct_class_scores + 1)
+    margins[np.arange(num_train), y] = 0
+
+    loss = np.sum(margins)/num_train
+    loss += reg * np.sum(W * W)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -91,7 +106,14 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    binary = margins
+    binary[margins > 0] = 1
+
+    row_sum = np.sum(binary, axis=1)  # Sum over the wrong classes
+    binary[np.arange(num_train), y] = -row_sum
+
+    dW = X.T.dot(binary)/num_train
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
